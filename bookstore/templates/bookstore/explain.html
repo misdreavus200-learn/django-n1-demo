@@ -1,0 +1,260 @@
+{% extends "bookstore/base.html" %}
+{% block title %}N+1問題の解説{% endblock %}
+
+{% block extra_css %}
+<style>
+  .explain-header { margin-bottom: 2rem; }
+  .explain-header h1 { font-size: 2rem; margin-bottom: .5rem; }
+  .explain-header p { color: #555; font-size: 1rem; line-height: 1.7; }
+
+  .section { margin-bottom: 3rem; }
+  .section h2 {
+    font-size: 1.4rem;
+    border-left: 4px solid var(--blue);
+    padding-left: .8rem;
+    margin-bottom: 1.2rem;
+  }
+  .section p, .section li { font-size: .95rem; line-height: 1.8; color: #444; }
+  .section ul { padding-left: 1.5rem; margin-top: .5rem; }
+  .section li { margin-bottom: .4rem; }
+
+  .diagram {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    margin: 1.2rem 0;
+    overflow-x: auto;
+  }
+  .flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: .5rem;
+    font-size: .85rem;
+    margin-bottom: .8rem;
+  }
+  .flow-box {
+    padding: .5rem 1rem;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .flow-arrow { color: #aaa; font-size: 1.2rem; }
+  .box-app { background: #e3f2fd; color: #1565c0; }
+  .box-db { background: #fce4ec; color: #c62828; }
+  .box-sql { background: #f3e5f5; color: #6a1b9a; font-family: monospace; font-size: .8rem; }
+  .box-ok { background: #e8f5e9; color: #2e7d32; }
+
+  .code-compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 1.2rem 0;
+  }
+  @media (max-width: 700px) { .code-compare { grid-template-columns: 1fr; } }
+  .code-panel {
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .code-panel .code-header {
+    padding: .7rem 1rem;
+    font-weight: 700;
+    font-size: .9rem;
+  }
+  .code-panel.bad .code-header { background: #e74c3c; color: white; }
+  .code-panel.good .code-header { background: #27ae60; color: white; }
+  .code-panel pre {
+    background: #1e272e;
+    color: #ecf0f1;
+    padding: 1rem;
+    font-size: .82rem;
+    line-height: 1.7;
+    font-family: monospace;
+    margin: 0;
+    overflow-x: auto;
+  }
+  .hl-red { color: #e74c3c; }
+  .hl-green { color: #2ecc71; }
+  .hl-comment { color: #7f8c8d; }
+
+  .tip-box {
+    background: #fff8e1;
+    border-left: 4px solid #f39c12;
+    border-radius: 0 8px 8px 0;
+    padding: 1rem 1.2rem;
+    margin: 1.2rem 0;
+    font-size: .9rem;
+    line-height: 1.7;
+  }
+  .tip-box strong { color: #e67e22; }
+
+  .tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  .tool-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+  }
+  .tool-card h3 { font-size: 1rem; margin-bottom: .5rem; }
+  .tool-card p { font-size: .85rem; color: #555; line-height: 1.6; }
+
+  .cta-end {
+    text-align: center;
+    padding: 3rem 1rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    margin-top: 3rem;
+  }
+  .cta-end h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+  .cta-end .cta-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="explain-header">
+  <h1>📖 N+1問題とは何か？</h1>
+  <p>
+    ORMを使った開発でよく発生するパフォーマンス問題です。<br>
+    1回で済むはずのデータ取得が、N件のデータに対してN+1回のクエリに膨れ上がります。
+  </p>
+</div>
+
+<!-- Section 1 -->
+<div class="section">
+  <h2>1. 問題の仕組み</h2>
+  <p>「書籍20件とその著者名を表示する」という処理を考えます。</p>
+
+  <div class="diagram">
+    <strong style="color: var(--red);">❌ N+1が発生する場合 — 21本のSQL</strong>
+    <div style="margin-top: 1rem;">
+      <div class="flow">
+        <span class="flow-box box-app">Djangoアプリ</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-sql">SELECT * FROM book LIMIT 20</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-db">DB (1回目)</span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-app">ループ×20回</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-sql">SELECT * FROM author WHERE id=1</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-db">DB (2〜21回目)</span>
+      </div>
+    </div>
+    <p style="color: var(--red); font-weight: 700; margin-top: .8rem;">
+      ＝ 合計 1 + 20 = <strong>21本</strong>のSQL（データが100件なら101本！）
+    </p>
+  </div>
+
+  <div class="diagram">
+    <strong style="color: var(--green);">✅ 最適化した場合 — 2本のSQL</strong>
+    <div style="margin-top: 1rem;">
+      <div class="flow">
+        <span class="flow-box box-app">Djangoアプリ</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-sql">SELECT book.*, author.* FROM book JOIN author … LIMIT 20</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-db">DB (1回のみ)</span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-app">Djangoアプリ</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-sql">SELECT * FROM review WHERE book_id IN (…)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-box box-ok">DB (2回目で完了)</span>
+      </div>
+    </div>
+    <p style="color: var(--green); font-weight: 700; margin-top: .8rem;">
+      ＝ データが何件でも <strong>2本</strong>のSQL
+    </p>
+  </div>
+</div>
+
+<!-- Section 2 -->
+<div class="section">
+  <h2>2. コードの違い（たった1〜2行）</h2>
+  <div class="code-compare">
+    <div class="code-panel bad">
+      <div class="code-header">❌ N+1問題あり</div>
+      <pre><span class="hl-comment"># 著者情報は含まれていない</span>
+books = Book.objects<span class="hl-red">.all()</span>[:20]
+
+for book in books:
+    <span class="hl-comment"># ここで毎回SELECT発行</span>
+    name = book<span class="hl-red">.author.name</span>
+    reviews = book<span class="hl-red">.reviews.all()</span></pre>
+    </div>
+    <div class="code-panel good">
+      <div class="code-header">✅ 最適化済み</div>
+      <pre><span class="hl-comment"># JOINと一括取得を指示する</span>
+books = Book.objects\
+  .<span class="hl-green">select_related('author')</span>\
+  .<span class="hl-green">prefetch_related('reviews')</span>\
+  .all()[:20]
+
+for book in books:
+    name = book.author.name  <span class="hl-comment"># SQL不要</span>
+    reviews = book.reviews.all() <span class="hl-comment"># SQL不要</span></pre>
+    </div>
+  </div>
+
+  <div class="tip-box">
+    <strong>📌 使い分けのポイント</strong><br>
+    <code>select_related</code> … <strong>ForeignKey / OneToOne</strong> のとき（SQL JOINで取得）<br>
+    <code>prefetch_related</code> … <strong>ManyToMany / reverse FK</strong> のとき（別クエリで一括取得・Pythonで結合）
+  </div>
+</div>
+
+<!-- Section 3 -->
+<div class="section">
+  <h2>3. なぜ気づきにくいのか？</h2>
+  <p>
+    Djangoのquerysetは <strong>遅延評価（Lazy Loading）</strong> が基本です。<br>
+    <code>book.author.name</code> のようにアクセスした瞬間にSQLが発行されるため、
+    コードを読んだだけでは問題に気づきにくいのです。
+  </p>
+  <ul>
+    <li>少ないデータ件数の開発環境では遅さを感じない</li>
+    <li>本番環境でデータが増えて突然パフォーマンスが劣化する</li>
+    <li>テンプレート内で <code>{{ book.author.name }}</code> と書くだけでも発生する</li>
+  </ul>
+</div>
+
+<!-- Section 4 -->
+<div class="section">
+  <h2>4. 検出ツール</h2>
+  <div class="tools-grid">
+    <div class="tool-card">
+      <h3>🔧 django-debug-toolbar</h3>
+      <p>開発中にブラウザのサイドパネルで発行SQLを全て確認できる。重複クエリも警告してくれる。</p>
+    </div>
+    <div class="tool-card">
+      <h3>🐍 django-silk</h3>
+      <p>本番に近い環境でのプロファイリングに向いている。リクエストごとのSQL数・時間を記録。</p>
+    </div>
+    <div class="tool-card">
+      <h3>📊 connection.queries</h3>
+      <p><code>from django.db import connection</code> で全クエリのリストをPythonコードから取得できる。</p>
+    </div>
+    <div class="tool-card">
+      <h3>🧪 nplusone</h3>
+      <p>N+1問題をテストコードで検出できるライブラリ。CI/CDに組み込んでの予防に最適。</p>
+    </div>
+  </div>
+</div>
+
+<div class="cta-end">
+  <h2>実際に体験してみよう</h2>
+  <div class="cta-row">
+    <a href="/books/n1/" class="btn btn-red">❌ N+1あり で試す</a>
+    <a href="/books/optimized/" class="btn btn-green">✅ 最適化済み で試す</a>
+  </div>
+</div>
+{% endblock %}

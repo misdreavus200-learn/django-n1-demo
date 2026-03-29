@@ -1,0 +1,299 @@
+{% extends "bookstore/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .page-header h1 { font-size: 1.6rem; }
+  .page-header p { color: #555; margin-top: .4rem; font-size: .95rem; }
+  .compare-link a {
+    font-size: .9rem;
+    padding: .5rem 1rem;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    flex: 1; min-width: 140px;
+    background: white;
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    border-left: 4px solid var(--border);
+  }
+  .stat-card.danger { border-color: var(--red); }
+  .stat-card.success { border-color: var(--green); }
+  .stat-card label {
+    font-size: .75rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--gray);
+    display: block;
+    margin-bottom: .3rem;
+  }
+  .stat-card .value {
+    font-size: 2rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+  .stat-card.danger .value { color: var(--red); }
+  .stat-card.success .value { color: var(--green); }
+  .stat-card .unit { font-size: .8rem; color: var(--gray); }
+
+  /* Code comparison */
+  .code-box {
+    background: #1e272e;
+    border-radius: 10px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+  }
+  .code-box pre {
+    color: #ecf0f1;
+    font-family: 'Fira Code', 'Courier New', monospace;
+    font-size: .85rem;
+    line-height: 1.7;
+    white-space: pre;
+  }
+  .code-box .hl-bad { color: #e74c3c; font-weight: bold; }
+  .code-box .hl-good { color: #2ecc71; font-weight: bold; }
+  .code-box .hl-comment { color: #7f8c8d; }
+
+  /* Switch tabs */
+  .switch-tabs {
+    display: flex;
+    gap: .5rem;
+    margin-bottom: 1.5rem;
+  }
+  .switch-tabs a {
+    padding: .5rem 1.2rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: .9rem;
+    font-weight: 600;
+    background: white;
+    color: #555;
+    box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    transition: all .2s;
+  }
+  .switch-tabs a.active-bad { background: var(--red); color: white; }
+  .switch-tabs a.active-good { background: var(--green); color: white; }
+
+  /* Table */
+  .table-wrap {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--dark); color: white; }
+  thead th { padding: .9rem 1rem; text-align: left; font-size: .85rem; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  tbody tr:hover { background: #f8f9fb; }
+  tbody td { padding: .8rem 1rem; font-size: .9rem; }
+  .genre-badge {
+    background: #e8eaf6;
+    color: #3949ab;
+    border-radius: 20px;
+    padding: .2rem .7rem;
+    font-size: .75rem;
+    font-weight: 600;
+  }
+
+  /* Query log */
+  .query-log { margin-top: 2rem; }
+  .query-log summary {
+    cursor: pointer;
+    padding: .8rem 1rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    font-weight: 600;
+    font-size: .9rem;
+  }
+  .query-log[open] summary { border-radius: 8px 8px 0 0; }
+  .query-list {
+    background: white;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,.08);
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .query-item {
+    padding: .7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-size: .82rem;
+  }
+  .query-item:last-child { border-bottom: none; }
+  .query-item .qnum {
+    display: inline-block;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #f0f0f0;
+    text-align: center; line-height: 28px;
+    font-weight: 700;
+    font-size: .75rem;
+    margin-right: .5rem;
+    flex-shrink: 0;
+  }
+  .query-item .qsql {
+    font-family: monospace;
+    color: #2d3436;
+    word-break: break-all;
+  }
+  .query-item .qtime { color: var(--gray); font-size: .75rem; margin-top: .2rem; }
+
+  .alert {
+    padding: 1rem 1.2rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: .95rem;
+    line-height: 1.6;
+  }
+  .alert-red { background: #fde8e8; color: #c0392b; border-left: 4px solid var(--red); }
+  .alert-green { background: #e8f5e9; color: #1b5e20; border-left: 4px solid var(--green); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
+  </div>
+  <div class="compare-link">
+    {% if mode == 'n1' %}
+      <a href="/books/optimized/" class="btn btn-green">✅ 最適化版と比較 →</a>
+    {% else %}
+      <a href="/books/n1/" class="btn btn-red">❌ N+1版と比較 →</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Switch tabs -->
+<div class="switch-tabs">
+  <a href="/books/n1/" {% if mode == 'n1' %}class="active-bad"{% endif %}>❌ N+1問題あり</a>
+  <a href="/books/optimized/" {% if mode == 'optimized' %}class="active-good"{% endif %}>✅ 最適化済み</a>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar">
+  <div class="stat-card {% if mode == 'n1' %}danger{% else %}success{% endif %}">
+    <label>発行クエリ数</label>
+    <div class="value">{{ stats.count }}</div>
+    <div class="unit">本のSQL</div>
+  </div>
+  <div class="stat-card {% if mode == 'n1' %}danger{% else %}success{% endif %}">
+    <label>DB合計時間</label>
+    <div class="value">{{ stats.total_time_ms }}</div>
+    <div class="unit">ms</div>
+  </div>
+  <div class="stat-card">
+    <label>画面表示時間</label>
+    <div class="value">{{ elapsed_ms }}</div>
+    <div class="unit">ms</div>
+  </div>
+  <div class="stat-card">
+    <label>書籍件数</label>
+    <div class="value">{{ book_data|length }}</div>
+    <div class="unit">件</div>
+  </div>
+</div>
+
+<!-- Alert -->
+{% if mode == 'n1' %}
+<div class="alert alert-red">
+  ⚠️ <strong>{{ stats.count }}本</strong> のSQLが発行されました！
+  書籍20件を表示するために、著者取得×20＋レビュー集計×20＋αのクエリが追加で発行されています。
+  データが増えれば増えるほど、クエリ数もリニアに増加します。
+</div>
+{% else %}
+<div class="alert alert-green">
+  ✅ わずか <strong>{{ stats.count }}本</strong> のSQLで完了！
+  <code>select_related</code> で著者をJOIN、<code>prefetch_related</code> でレビューを一括取得することで、
+  クエリ数を大幅に削減できました。
+</div>
+{% endif %}
+
+<!-- Code box -->
+<div class="code-box">
+{% if mode == 'n1' %}
+<pre><span class="hl-comment"># ❌ N+1問題が発生するコード</span>
+books = Book.objects.<span class="hl-bad">all()</span>[:20]
+for book in books:
+    <span class="hl-comment"># ↓ ここでSQLが毎回発行される！ (N回)</span>
+    author_name = book.<span class="hl-bad">author.name</span>
+    <span class="hl-comment"># ↓ さらにレビュー取得のSQLも発行される！ (N×M回)</span>
+    reviews = book.<span class="hl-bad">reviews.all()</span></pre>
+{% else %}
+<pre><span class="hl-comment"># ✅ 最適化済みコード</span>
+books = Book.objects\
+    .<span class="hl-good">select_related('author')</span>\      <span class="hl-comment"># JOINで著者を一括取得</span>
+    .<span class="hl-good">prefetch_related('reviews')</span>\  <span class="hl-comment"># 別クエリでレビューを一括取得</span>
+    .all()[:20]
+for book in books:
+    author_name = book.author.name   <span class="hl-comment"># 追加SQLなし</span>
+    reviews = book.reviews.all()     <span class="hl-comment"># 追加SQLなし</span></pre>
+{% endif %}
+</div>
+
+<!-- Books table -->
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>タイトル</th>
+        <th>著者</th>
+        <th>ジャンル</th>
+        <th>価格</th>
+        <th>平均評価</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in book_data %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td><strong>{{ b.title }}</strong></td>
+        <td>{{ b.author_name }}</td>
+        <td><span class="genre-badge">{{ b.genre }}</span></td>
+        <td>¥{{ b.price }}</td>
+        <td>{% if b.avg_rating %}{{ b.avg_rating }} ★{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Query log -->
+<details class="query-log">
+  <summary>🔍 発行されたSQL一覧を見る（{{ stats.count }}本 / 表示は最大100件）</summary>
+  <div class="query-list">
+    {% for q in stats.queries %}
+    <div class="query-item">
+      <span class="qnum">{{ forloop.counter }}</span>
+      <span class="qsql">{{ q.sql }}</span>
+      <div class="qtime">実行時間: {{ q.time }}秒</div>
+    </div>
+    {% endfor %}
+    {% if stats.truncated %}
+    <div class="query-item" style="text-align:center; color: var(--gray); padding: 1rem;">
+      … 残り {{ stats.count|add:"-100" }} 本は省略（合計 {{ stats.count }} 本）
+    </div>
+    {% endif %}
+  </div>
+</details>
+{% endblock %}

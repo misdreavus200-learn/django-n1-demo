@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}N+1問題 体験サイト{% endblock %}</title>
+  <style>
+    :root {
+      --red: #e74c3c;
+      --green: #27ae60;
+      --blue: #2980b9;
+      --dark: #2c3e50;
+      --light: #ecf0f1;
+      --gray: #95a5a6;
+      --card-bg: #fff;
+      --border: #dde1e7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
+      background: #f4f6f9;
+      color: var(--dark);
+      min-height: 100vh;
+    }
+    header {
+      background: var(--dark);
+      color: white;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+    header .logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: white;
+    }
+    header .logo span { color: #f39c12; }
+    nav a {
+      color: #bdc3cb;
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-size: .9rem;
+      transition: color .2s;
+    }
+    nav a:hover { color: white; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 2rem 1rem; }
+    .btn {
+      display: inline-block;
+      padding: .6rem 1.4rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: .9rem;
+      transition: all .2s;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-red { background: var(--red); color: white; }
+    .btn-red:hover { background: #c0392b; }
+    .btn-green { background: var(--green); color: white; }
+    .btn-green:hover { background: #219a52; }
+    .btn-blue { background: var(--blue); color: white; }
+    .btn-blue:hover { background: #2471a3; }
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--dark);
+      color: var(--dark);
+    }
+    .btn-outline:hover { background: var(--dark); color: white; }
+    footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--gray);
+      font-size: .8rem;
+      margin-top: 3rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<header>
+  <a href="/" class="logo">N<span>+1</span> 問題 体験サイト</a>
+  <nav>
+    <a href="/">ホーム</a>
+    <a href="/books/n1/">❌ N+1あり</a>
+    <a href="/books/optimized/">✅ 最適化済み</a>
+    <a href="/explain/">解説</a>
+  </nav>
+</header>
+
+<div class="container">
+  {% block content %}{% endblock %}
+</div>
+
+<footer>
+  N+1問題 体験サイト — Django + SQLite / PostgreSQL
+</footer>
+</body>
+</html>

@@ -1,0 +1,151 @@
+{% extends "bookstore/base.html" %}
+{% block title %}N+1問題 体験サイト — トップ{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hero {
+    text-align: center;
+    padding: 4rem 1rem;
+  }
+  .hero h1 {
+    font-size: 2.8rem;
+    font-weight: 900;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+  }
+  .hero h1 .n1 { color: var(--red); }
+  .hero p {
+    font-size: 1.1rem;
+    color: #555;
+    max-width: 600px;
+    margin: 0 auto 2.5rem;
+    line-height: 1.7;
+  }
+  .cta-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 4rem;
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 12px;
+    padding: 1.8rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,.08);
+    border-top: 4px solid transparent;
+  }
+  .card.bad { border-color: var(--red); }
+  .card.good { border-color: var(--green); }
+  .card.info { border-color: var(--blue); }
+  .card h2 { font-size: 1.2rem; margin-bottom: .8rem; }
+  .card p { color: #555; font-size: .95rem; line-height: 1.7; margin-bottom: 1.2rem; }
+  .badge {
+    display: inline-block;
+    padding: .3rem .8rem;
+    border-radius: 20px;
+    font-size: .8rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+  }
+  .badge-red { background: #fde8e8; color: var(--red); }
+  .badge-green { background: #e8f5e9; color: var(--green); }
+  .badge-blue { background: #e3f2fd; color: var(--blue); }
+  .step-section { margin-top: 4rem; }
+  .step-section h2 { font-size: 1.5rem; margin-bottom: 1.5rem; }
+  .steps { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .step {
+    flex: 1; min-width: 200px;
+    background: white;
+    border-radius: 10px;
+    padding: 1.2rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+    position: relative;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--dark);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    margin: 0 auto .8rem;
+  }
+  .step p { font-size: .9rem; color: #555; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <h1>Djangoで体験する<br><span class="n1">N+1問題</span></h1>
+  <p>
+    N+1問題とは、データベースへのクエリが想定以上に大量発行されるパフォーマンス問題です。<br>
+    このサイトでは、問題あり・問題なし のページを比べて、SQLの発行数と実行時間の違いを体験できます。
+  </p>
+  <div class="cta-row">
+    <a href="/books/n1/" class="btn btn-red">❌ N+1問題あり で見る</a>
+    <a href="/books/optimized/" class="btn btn-green">✅ 最適化済み で見る</a>
+    <a href="/explain/" class="btn btn-outline">📖 仕組みを学ぶ</a>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card bad">
+    <span class="badge badge-red">問題あり</span>
+    <h2>❌ N+1問題が起きているページ</h2>
+    <p>
+      <code>Book.objects.all()</code> で書籍を取得後、<br>
+      ループ内で <code>book.author.name</code> を参照すると…<br>
+      書籍数分だけ追加クエリが発行されます！
+    </p>
+    <a href="/books/n1/" class="btn btn-red">体験する →</a>
+  </div>
+  <div class="card good">
+    <span class="badge badge-green">最適化済み</span>
+    <h2>✅ select_related で解決したページ</h2>
+    <p>
+      <code>select_related('author')</code> と<br>
+      <code>prefetch_related('reviews')</code> を使うと、<br>
+      クエリ数が劇的に減ります。
+    </p>
+    <a href="/books/optimized/" class="btn btn-green">体験する →</a>
+  </div>
+  <div class="card info">
+    <span class="badge badge-blue">解説</span>
+    <h2>📖 N+1問題とは何か？</h2>
+    <p>
+      なぜ起きるのか、どう検出するか、<br>
+      DjangoのORM解決策を図解・コード付きで解説。<br>
+      django-debug-toolbar の使い方も紹介。
+    </p>
+    <a href="/explain/" class="btn btn-blue">読む →</a>
+  </div>
+</div>
+
+<div class="step-section">
+  <h2>🔍 体験の流れ</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <strong>「N+1あり」を開く</strong>
+      <p>SQLが何本発行されているか確認</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <strong>「最適化済み」を開く</strong>
+      <p>クエリ数・時間がどれだけ減るか比較</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <strong>コードの違いを確認</strong>
+      <p>たった1行の違いが生む大きな差</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <strong>解説を読む</strong>
+      <p>原理・検出方法・解決策を理解する</p>
+    </div>
+  </div>
+</div>
+{% endblock %}
