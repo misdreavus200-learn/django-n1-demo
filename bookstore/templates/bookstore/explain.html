@@ -159,7 +159,7 @@
       <div class="flow">
         <span class="flow-box box-app">Djangoアプリ</span>
         <span class="flow-arrow">→</span>
-        <span class="flow-box box-sql">SELECT book.*, author.* FROM book JOIN author … LIMIT 20</span>
+        <span class="flow-box box-sql">SELECT book.*, author.* FROM book JOIN author …（全件）</span>
         <span class="flow-arrow">→</span>
         <span class="flow-box box-db">DB (1回のみ)</span>
       </div>
@@ -172,7 +172,7 @@
       </div>
     </div>
     <p style="color: var(--green); font-weight: 700; margin-top: .8rem;">
-      ＝ データが何件でも <strong>2本</strong>のSQL
+      ＝ データが何件でも <strong>3本</strong>のSQL（書籍＋著者JOIN / レビュー一括取得 / 集計）
     </p>
   </div>
 </div>
@@ -227,9 +227,96 @@ for book in books:
   </ul>
 </div>
 
-<!-- Section 4 -->
+
+<!-- Section 4: DB時間以外のコスト（新規追加） -->
 <div class="section">
-  <h2>4. 検出ツール</h2>
+  <h2>4. 「DB時間以外」でも遅くなる理由</h2>
+  <p>
+    このサイトで計測している <strong>「DB合計時間」</strong> は、SQLiteがSQLを実際に実行した時間だけです。<br>
+    しかし画面表示時間はDB時間よりもはるかに大きくなります。
+    実際の計測例を見てみましょう。
+  </p>
+
+  <div class="diagram">
+    <strong>📊 実測値の例（書籍500件）</strong>
+    <table style="width:100%;border-collapse:collapse;margin-top:1rem;font-size:.9rem;">
+      <thead>
+        <tr style="background:var(--dark);color:white;">
+          <th style="padding:.7rem 1rem;text-align:left;">計測項目</th>
+          <th style="padding:.7rem 1rem;text-align:right;color:#e74c3c;">❌ N+1あり</th>
+          <th style="padding:.7rem 1rem;text-align:right;color:#2ecc71;">✅ 最適化済み</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #eee;">
+          <td style="padding:.7rem 1rem;">DB合計時間</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:700;color:#e74c3c;">397 ms</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:700;color:#27ae60;">1 ms</td>
+        </tr>
+        <tr style="border-bottom:1px solid #eee;background:#f9f9f9;">
+          <td style="padding:.7rem 1rem;">DB以外の処理時間</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:700;color:#e74c3c;">2,980 ms</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:700;color:#27ae60;">736 ms</td>
+        </tr>
+        <tr style="background:#fff3f3;">
+          <td style="padding:.7rem 1rem;font-weight:700;">画面表示時間（合計）</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:900;color:#e74c3c;">3,377 ms</td>
+          <td style="padding:.7rem 1rem;text-align:right;font-weight:900;color:#27ae60;">737 ms</td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="margin-top:.8rem;font-size:.85rem;color:#777;">
+      ※ DB以外の時間差（2,244ms）はSQLの本数が原因で発生するPython/ORMのオーバーヘッドです
+    </p>
+  </div>
+
+  <p>1本のクエリを発行するたびに、SQLの実行時間とは別に以下の処理が発生します。</p>
+
+  <div class="diagram">
+    <strong>1クエリあたりの処理コスト（N+1版では1,500回繰り返される）</strong>
+    <div style="margin-top:1rem;display:flex;flex-direction:column;gap:.5rem;">
+      <div class="flow">
+        <span class="flow-box box-app">① ORM</span>
+        <span class="flow-arrow">→</span>
+        <span style="font-size:.85rem;color:#444;">SQLを文字列として組み立てる</span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-app">② ドライバ</span>
+        <span class="flow-arrow">→</span>
+        <span style="font-size:.85rem;color:#444;">SQLiteへのシステムコール発行</span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-db">③ SQLite</span>
+        <span class="flow-arrow">→</span>
+        <span style="font-size:.85rem;color:#444;">SQL実行・結果をカーソルに格納 ← <strong>DB時間として計測されるのはここだけ</strong></span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-app">④ ORM</span>
+        <span class="flow-arrow">→</span>
+        <span style="font-size:.85rem;color:#444;">結果行をPythonのModelオブジェクトに変換</span>
+      </div>
+      <div class="flow">
+        <span class="flow-box box-app">⑤ Python</span>
+        <span class="flow-arrow">→</span>
+        <span style="font-size:.85rem;color:#444;">次のループ処理へ</span>
+      </div>
+    </div>
+    <p style="margin-top:1rem;color:#e74c3c;font-weight:700;font-size:.9rem;">
+      ①②④⑤ の処理が1,500回積み重なる → DB時間とは別に数千msのオーバーヘッドが発生する
+    </p>
+  </div>
+
+  <div class="tip-box">
+    <strong>📌 N+1問題の本質</strong><br>
+    「SQLが1本あたり遅い」のではなく、<strong>「SQLを呼ぶ回数が多すぎる」</strong>ことがボトルネックです。<br>
+    DB時間だけを見ていると問題の大きさを過小評価してしまいます。
+    画面表示時間全体で比較することが重要です。
+  </div>
+</div>
+
+<!-- Section 5 -->
+<div class="section">
+  <h2>5. 検出ツール</h2>
   <div class="tools-grid">
     <div class="tool-card">
       <h3>🔧 django-debug-toolbar</h3>
