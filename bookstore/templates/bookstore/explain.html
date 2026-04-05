@@ -128,28 +128,28 @@
 <!-- Section 1 -->
 <div class="section">
   <h2>1. 問題の仕組み</h2>
-  <p>「書籍20件とその著者名を表示する」という処理を考えます。</p>
+  <p>「書籍500件とその著者名・レビューを表示する」という処理を考えます。</p>
 
   <div class="diagram">
-    <strong style="color: var(--red);">❌ N+1が発生する場合 — 21本のSQL</strong>
+    <strong style="color: var(--red);">❌ N+1が発生する場合 — 1,501本以上のSQL</strong>
     <div style="margin-top: 1rem;">
       <div class="flow">
         <span class="flow-box box-app">Djangoアプリ</span>
         <span class="flow-arrow">→</span>
-        <span class="flow-box box-sql">SELECT * FROM book LIMIT 20</span>
+        <span class="flow-box box-sql">SELECT * FROM book（全件）</span>
         <span class="flow-arrow">→</span>
         <span class="flow-box box-db">DB (1回目)</span>
       </div>
       <div class="flow">
-        <span class="flow-box box-app">ループ×20回</span>
+        <span class="flow-box box-app">ループ×500回</span>
         <span class="flow-arrow">→</span>
         <span class="flow-box box-sql">SELECT * FROM author WHERE id=1</span>
         <span class="flow-arrow">→</span>
-        <span class="flow-box box-db">DB (2〜21回目)</span>
+        <span class="flow-box box-db">DB (2〜501回目)</span>
       </div>
     </div>
     <p style="color: var(--red); font-weight: 700; margin-top: .8rem;">
-      ＝ 合計 1 + 20 = <strong>21本</strong>のSQL（データが100件なら101本！）
+      ＝ 合計 1 + 500（著者）+ 500×2（レビュー）= <strong>1,501本以上</strong>のSQL<br>件数が増えるほどリニアに増加する
     </p>
   </div>
 

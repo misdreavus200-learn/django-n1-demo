@@ -217,14 +217,14 @@
 {% if mode == 'n1' %}
 <div class="alert alert-red">
   ⚠️ <strong>{{ stats.count }}本</strong> のSQLが発行されました！
-  書籍20件を表示するために、著者取得×20＋レビュー集計×20＋αのクエリが追加で発行されています。
-  データが増えれば増えるほど、クエリ数もリニアに増加します。
+  書籍{{ book_data|length }}件を表示するために、著者取得×{{ book_data|length }}＋レビュー集計×{{ book_data|length }}×2 のクエリが発行されています。
+  件数が増えるほどリニアに増加するため、これだけ遅くなります。
 </div>
 {% else %}
 <div class="alert alert-green">
   ✅ わずか <strong>{{ stats.count }}本</strong> のSQLで完了！
-  <code>select_related</code> で著者をJOIN、<code>prefetch_related</code> でレビューを一括取得することで、
-  クエリ数を大幅に削減できました。
+  書籍{{ book_data|length }}件あっても <code>select_related</code> と <code>prefetch_related</code> を使えば
+  クエリ数は常に一定です。N+1版と比べてみてください。
 </div>
 {% endif %}
 
@@ -232,18 +232,18 @@
 <div class="code-box">
 {% if mode == 'n1' %}
 <pre><span class="hl-comment"># ❌ N+1問題が発生するコード</span>
-books = Book.objects.<span class="hl-bad">all()</span>[:20]
+books = Book.objects.<span class="hl-bad">all()</span>  <span class="hl-comment"># 全件取得（500件）</span>
 for book in books:
-    <span class="hl-comment"># ↓ ここでSQLが毎回発行される！ (N回)</span>
+    <span class="hl-comment"># ↓ ここでSQLが毎回発行される！ (500回)</span>
     author_name = book.<span class="hl-bad">author.name</span>
-    <span class="hl-comment"># ↓ さらにレビュー取得のSQLも発行される！ (N×M回)</span>
+    <span class="hl-comment"># ↓ さらにレビュー取得のSQLも2本発行される！ (500×2回)</span>
     reviews = book.<span class="hl-bad">reviews.all()</span></pre>
 {% else %}
 <pre><span class="hl-comment"># ✅ 最適化済みコード</span>
 books = Book.objects\
     .<span class="hl-good">select_related('author')</span>\      <span class="hl-comment"># JOINで著者を一括取得</span>
     .<span class="hl-good">prefetch_related('reviews')</span>\  <span class="hl-comment"># 別クエリでレビューを一括取得</span>
-    .all()[:20]
+    .all()  <span class="hl-comment"># 500件でも追加SQL不要</span>
 for book in books:
     author_name = book.author.name   <span class="hl-comment"># 追加SQLなし</span>
     reviews = book.reviews.all()     <span class="hl-comment"># 追加SQLなし</span></pre>
